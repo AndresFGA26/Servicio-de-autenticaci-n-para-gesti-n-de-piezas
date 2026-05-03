@@ -89,6 +89,87 @@ class Authservice
         ];
 
     }
+    //====Register=====
+    public function register(array $data): array
+    {
+        \Log::info('AuthService::register - User registration started', [
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password_length' => strlen($data['password']),
+            'timestamp' => now()->toISOString()
+        ]);
+
+        try {
+            // Verificar si el email ya existe
+            $existingUser = $this->userRepository->findByEmail($data['email']);
+            if ($existingUser) {
+                \Log::error('AuthService::register - Email already exists', [
+                    'email' => $data['email']
+                ]);
+                throw new \Exception('El correo electrónico ya está registrado.');
+            }
+
+            // Crear nuevo usuario
+            // Laravel aplicará automáticamente el cast 'hashed' para encriptar con bcrypt
+            $user = User::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => $data['password'], // Laravel encripta automáticamente
+            ]);
+
+            \Log::info('AuthService::register - User created successfully', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+                'password_hash_length' => strlen($user->password),
+                'password_hash_algorithm' => 'bcrypt',
+                'created_at' => $user->created_at
+            ]);
+
+            // Verificar que la contraseña se haya encriptado correctamente
+            $passwordVerification = Hash::check($data['password'], $user->password);
+            \Log::info('AuthService::register - Password encryption verification', [
+                'password_check_result' => $passwordVerification,
+                'original_password' => $data['password'],
+                'stored_hash' => substr($user->password, 0, 20) . '...'
+            ]);
+
+            if (!$passwordVerification) {
+                \Log::error('AuthService::register - Password encryption failed');
+                throw new \Exception('Error en el encriptado de la contraseña.');
+            }
+
+            // Generar tokens para el usuario recién creado
+            $accessToken = $this->generateJWT($user, 3600);
+            $refreshToken = $this->generateRefreshToken($user);
+
+            \Log::info('AuthService::register - Registration completed successfully', [
+                'user_id' => $user->id,
+                'email' => $user->email
+            ]);
+
+            return [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'created_at' => $user->created_at
+                ],
+                'access_token' => $accessToken,
+                'refresh_token' => $refreshToken,
+                'token_type' => 'Bearer',
+                'expires_in' => 3600,
+            ];
+
+        } catch (\Exception $e) {
+            \Log::error('AuthService::register - Exception occurred', [
+                'error_message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'email_attempted' => $data['email'] ?? 'unknown'
+            ]);
+            throw $e;
+        }
+    }
     // == REFRESH==
     public function refresh(string $refreshToken): array
     {

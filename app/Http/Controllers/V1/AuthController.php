@@ -5,6 +5,7 @@ namespace App\Http\Controllers\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\LogoutRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Services\Authservice;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,12 @@ class AuthController extends Controller
     use ApiResponse;
 
     public function __construct(private Authservice $auth){}
+
+    public function register(RegisterRequest $request)
+    {
+        $data = $this->auth->register($request->validated());
+        return $this->successResponse($data, 'Usuario registrado exitosamente');
+    }
 
     public function login(LoginRequest $request)
     {
