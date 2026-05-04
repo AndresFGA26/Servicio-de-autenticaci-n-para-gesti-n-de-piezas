@@ -2,7 +2,176 @@
 
 ## 📋 Descripción del Servicio
 
-Microservicio Laravel 13+ especializado en autenticación y gestión de identidades digitales. Implementa un sistema robusto de JSON Web Tokens (JWT) con refresh tokens para garantizar sesiones seguras y escalables en arquitecturas de microservicios.
+Microservicio Laravel 11 especializado en autenticación y gestión de identidades digitales. Implementa un sistema robusto de JSON Web Tokens (JWT) con refresh tokens para garantizar sesiones seguras y escalables en arquitecturas de microservicios.
+
+## 🎯 **ESTADO FINAL DEL PROYECTO**
+
+### **✅ FUNCIONALIDADES IMPLEMENTADAS**
+- **Registro de usuarios** con validaciones robustas
+- **Login JWT** con access/refresh tokens
+- **Refresh token automático** para renovación de sesión
+- **Middleware JWT** con validación de estructura y firma
+- **Endpoint `/me`** para obtener datos de usuario autenticado
+- **Logout** con invalidación de tokens
+- **Base de datos PostgreSQL** vía Supabase
+- **Migraciones** completas y funcionales
+
+### **🔧 ARQUITECTURA IMPLEMENTADA**
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │  Auth Service   │    │ Pieces Service  │
+│   (React SPA)   │◄──►│  (Laravel JWT)  │◄──►│  (Laravel API)  │
+│   Port: 5173    │    │   Port: 8000    │    │   Port: 8001    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └──────────────────────┼──────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │  PostgreSQL DB  │
+                    │   (Supabase)    │
+                    └─────────────────┘
+```
+
+### **⚠️ LIMITACIONES CONOCIDAS**
+- **No hay Rate Limiting** en endpoints de auth
+- **Tokens en localStorage** (vulnerable a XSS)
+- **No hay HTTPS enforcement** (solo desarrollo)
+- **Base de datos compartida** (no es puro microservicio)
+
+### **🚀 ESTADO PARA ENTREVISTA**
+**✅ PROYECTO LISTO PARA SUSTENTACIÓN TÉCNICA**
+
+Cumple con requisitos fundamentales de microservicios:
+- Desacoplamiento lógico entre servicios
+- Comunicación por API REST
+- Autenticación stateless con JWT
+- Escalabilidad independiente de servicios
+
+**Nivel recomendado:** Junior/Mid Developer
+
+---
+
+## 🚀 **INSTALACIÓN Y CONFIGURACIÓN**
+
+### **Prerrequisitos**
+- PHP 8.2+
+- Composer
+- PostgreSQL (vía Supabase)
+- Laravel 11
+
+### **Instalación**
+```bash
+# Clonar el repositorio
+git clone <repository-url>
+cd auth-service
+
+# Instalar dependencias
+composer install
+
+# Configurar variables de entorno
+cp .env.example .env
+
+# Generar key de aplicación
+php artisan key:generate
+
+# Ejecutar migraciones
+php artisan migrate
+
+# Iniciar servidor
+php artisan serve --port=8000
+```
+
+### **Configuración de Variables de Entorno**
+```env
+DB_CONNECTION=pgsql
+DB_HOST=aws-1-us-east-1.pooler.supabase.com
+DB_PORT=5432
+DB_DATABASE=postgres
+DB_USERNAME=postgres.kllmebcpltitrajbfxfg
+DB_PASSWORD="Unicorniomorado777$"
+
+JWT_SECRET=your-jwt-secret-key
+```
+
+---
+
+## 📡 **ENDPOINTS DE LA API**
+
+| Método | Endpoint | Descripción | Autenticación |
+|--------|----------|-------------|---------------|
+| POST | `/api/v1/register` | Registro de usuarios | ❌ No |
+| POST | `/api/v1/login` | Login JWT | ❌ No |
+| POST | `/api/v1/refresh` | Refresh token | ❌ No |
+| GET | `/api/v1/me` | Datos de usuario | ✅ Sí |
+| POST | `/api/v1/logout` | Cerrar sesión | ✅ Sí |
+
+---
+
+## 🔐 **CREDENCIALES DE PRUEBA**
+
+### **Usuario por Defecto**
+- **Email:** `admin@test.com`
+- **Contraseña:** `12345678`
+
+### **Ejemplo de Login**
+```bash
+curl -X POST http://localhost:8000/api/v1/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "12345678"
+  }'
+```
+
+---
+
+## 🛠️ **DESARROLLO**
+
+### **Estructura de Archivos**
+```
+auth-service/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/V1/
+│   │   ├── Middleware/
+│   │   └── Requests/
+│   ├── Models/
+│   ├── Repositories/
+│   └── Services/
+├── database/
+│   └── migrations/
+└── routes/
+    └── api.php
+```
+
+### **Testing**
+```bash
+# Ejecutar tests (cuando estén implementados)
+php artisan test
+
+# Verificar migraciones
+php artisan migrate:status
+```
+
+---
+
+## 🐛 **SOLUCIÓN DE PROBLEMAS**
+
+### **Problemas Comunes**
+1. **Error de conexión a BD**: Verificar credenciales de Supabase
+2. **Token JWT inválido**: Verificar JWT_SECRET en .env
+3. **Error 401**: Asegurar que el token esté en formato "Bearer <token>"
+
+### **Logs**
+```bash
+# Ver logs de errores
+php artisan log:show
+
+# Limpiar logs
+php artisan log:clear
+```
+
+---
 
 ## 🏗️ Arquitectura General del Sistema
 
