@@ -234,6 +234,11 @@ class Authservice
         return $token;
     }
 
+    public function getUserById(int $userId): ?User
+    {
+        return $this->userRepository->findById($userId);
+    }
+
     /**
      * Obtiene la llave de forma segura. Si no es base64, retorna el texto plano.
      */

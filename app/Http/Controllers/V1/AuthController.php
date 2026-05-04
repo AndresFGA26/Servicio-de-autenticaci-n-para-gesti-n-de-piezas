@@ -29,6 +29,25 @@ class AuthController extends Controller
         return $this->successResponse($data, 'Login exitoso');
     }
 
+    public function me(Request $request)
+    {
+        // El middleware JWT ya validó el token y agregó user_id al request
+        $userId = $request->input('user_id');
+        
+        if (!$userId) {
+            return $this->errorResponse('Usuario no encontrado en el token', 401);
+        }
+
+        // Obtener información del usuario desde el servicio de autenticación
+        $user = $this->auth->getUserById($userId);
+        
+        if (!$user) {
+            return $this->errorResponse('Usuario no encontrado', 404);
+        }
+
+        return $this->successResponse($user, 'Información del usuario obtenida exitosamente');
+    }
+
     public function refresh(Request $request)
     {
         $request->validate([

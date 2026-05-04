@@ -1,13 +1,311 @@
 # 🔐 Auth Service - Microservicio de Autenticación
 
-## 📋 Descripción
+## 📋 Descripción del Servicio
 
-Microservicio Laravel dedicado a la autenticación y gestión de usuarios con JWT (JSON Web Tokens). Proporciona endpoints seguros para registro, login, refresh de tokens y logout.
+Microservicio Laravel 13+ especializado en autenticación y gestión de identidades digitales. Implementa un sistema robusto de JSON Web Tokens (JWT) con refresh tokens para garantizar sesiones seguras y escalables en arquitecturas de microservicios.
 
-## 🏗️ Arquitectura
+## 🏗️ Arquitectura General del Sistema
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │  Auth Service   │    │ Pieces Service  │
+│   (React SPA)   │◄──►│  (Laravel JWT)  │◄──►│  (Laravel API)  │
+│                 │    │                 │    │                 │
+│ - Login UI      │    │ - JWT Tokens    │    │ - CRUD Pieces   │
+│ - Token Storage │    │ - User Mgmt     │    │ - Protected API │
+│ - Route Guards  │    │ - Refresh Token │    │ - Business Logic│
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └──────────────────────┼──────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │  PostgreSQL DB  │
+                    │                 │
+                    │ - users         │
+                    │ - refresh_tokens│
+                    └─────────────────┘
+```
+
+## 🚀 Endpoints Principales
+
+### **Autenticación**
+- `POST /api/v1/register` - Registro de nuevos usuarios
+- `POST /api/v1/login` - Autenticación y generación de tokens
+- `POST /api/v1/refresh` - Refresco de access tokens
+- `POST /api/v1/logout` - Revocación de tokens
+
+### **Perfil de Usuario**
+- `GET /api/v1/profile` - Información del usuario autenticado
+
+## 🔧 Variables de Entorno
+
+```bash
+# Configuración de Base de Datos
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=auth_service
+DB_USERNAME=postgres
+DB_PASSWORD=password
+
+# Configuración de JWT
+JWT_SECRET=your_super_secret_key_here
+JWT_TTL=60                # Access token TTL (minutos)
+JWT_REFRESH_TTL=20160     # Refresh token TTL (minutos)
+
+# Configuración de Aplicación
+APP_NAME=Auth Service
+APP_ENV=local
+APP_KEY=base64:your_app_key
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+```
+
+## 📦 Instalación y Ejecución
+
+### **Prerrequisitos**
+- PHP 8.3+
+- Composer 2.0+
+- PostgreSQL 14+
+- Node.js 18+ (para assets)
+
+### **Pasos de Instalación**
+
+```bash
+# 1. Clonar el repositorio
+git clone <repository-url>
+cd auth-service
+
+# 2. Instalar dependencias
+composer install
+
+# 3. Configurar variables de entorno
+cp .env.example .env
+php artisan key:generate
+
+# 4. Configurar base de datos
+# Editar .env con tus credenciales PostgreSQL
+
+# 5. Ejecutar migraciones
+php artisan migrate
+
+# 6. Instalar y compilar assets frontend
+npm install
+npm run build
+
+# 7. Iniciar servidor de desarrollo
+php artisan serve
+```
+
+### **Scripts Disponibles**
+```bash
+composer run setup    # Instalación completa automatizada
+composer run dev      # Servidor + Queue + Logs + Vite
+composer run test     # Ejecutar pruebas
+```
+
+## 🔄 Flujo de Autenticación
+
+### **1. Login**
+```mermaid
+sequenceDiagram
+    participant Frontend
+    participant AuthAPI
+    participant Database
+    
+    Frontend->>AuthAPI: POST /api/v1/login (email, password)
+    AuthAPI->>Database: Validar credenciales
+    Database-->>AuthAPI: Usuario válido
+    AuthAPI->>AuthAPI: Generar JWT + Refresh Token
+    AuthAPI-->>Frontend: { user, access_token, refresh_token }
+    Frontend->>Frontend: Almacenar tokens en store
+```
+
+### **2. Refresh Token**
+```mermaid
+sequenceDiagram
+    participant Frontend
+    participant AuthAPI
+    participant Database
+    
+    Frontend->>AuthAPI: POST /api/v1/refresh (refresh_token)
+    AuthAPI->>Database: Validar refresh token
+    Database-->>AuthAPI: Token válido
+    AuthAPI->>AuthAPI: Generar nuevo access token
+    AuthAPI-->>Frontend: { access_token }
+```
+
+### **3. Logout**
+```mermaid
+sequenceDiagram
+    participant Frontend
+    participant AuthAPI
+    participant Database
+    
+    Frontend->>AuthAPI: POST /api/v1/logout (refresh_token)
+    AuthAPI->>Database: Eliminar refresh token
+    Database-->>AuthAPI: Token eliminado
+    AuthAPI-->>Frontend: Logout exitoso
+    Frontend->>Frontend: Limpiar store local
+```
+
+## 🛡️ Decisiones Técnicas
+
+### **¿Por qué JWT?**
+- **Stateless**: Ideal para microservicios y escalabilidad horizontal
+- **Cross-Origin**: Funciona perfectamente con SPAs y móviles
+- **Performance**: Sin consultas a BD en cada request
+- **Estándar**: RFC 7519, amplia compatibilidad
+
+### **¿Por qué Refresh Tokens?**
+- **Seguridad**: Access tokens de corta duración (1 hora)
+- **UX**: Sesiones persistentes sin re-login constante
+- **Revocación**: Posibilidad de invalidar sesiones específicas
+
+### **¿Por qué Separación de Servicios?**
+- **Escalabilidad**: Cada servicio puede escalar independientemente
+- **Mantenimiento**: Actualizaciones sin afectar otros servicios
+- **Especialización**: Cada servicio enfocado en su dominio
+- **Resiliencia**: Fallas aisladas no afectan todo el sistema
+
+## 🧪 Pruebas del Sistema
+
+### **Postman Collection**
+```json
+{
+  "info": {
+    "name": "Auth Service API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\":\"John Doe\",\"email\":\"john@example.com\",\"password\":\"password123\"}"
+        },
+        "url": "{{baseUrl}}/api/v1/register"
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"john@example.com\",\"password\":\"password123\"}"
+        },
+        "url": "{{baseUrl}}/api/v1/login"
+      }
+    }
+  ]
+}
+```
+
+### **Pruebas con cURL**
+```bash
+# Registro
+curl -X POST http://localhost:8000/api/v1/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","email":"john@example.com","password":"password123"}'
+
+# Login
+curl -X POST http://localhost:8000/api/v1/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","password":"password123"}'
+
+# Profile (con token)
+curl -X GET http://localhost:8000/api/v1/profile \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+## 🔍 Estructura del Proyecto
+
+```
+app/
+├── Http/
+│   ├── Controllers/V1/
+│   │   └── AuthController.php     # Endpoints de autenticación
+│   ├── Requests/
+│   │   ├── LoginRequest.php       # Validación login
+│   │   ├── RegisterRequest.php    # Validación registro
+│   │   └── LogoutRequest.php      # Validación logout
+│   └── Services/
+│       └── AuthService.php         # Lógica de negocio
+├── Models/
+│   └── User.php                   # Modelo Eloquent
+└── Traits/
+    └── ApiResponse.php             # Respuestas JSON estandarizadas
+
+database/
+├── migrations/
+│   └── create_users_table.php     # Estructura de usuarios
+└── seeders/
+    └── UserSeeder.php             # Datos de prueba
+
+routes/
+└── api.php                        # Definición de rutas API
+```
+
+## 🚀 Despliegue
+
+### **Docker (Recomendado)**
+```dockerfile
+FROM php:8.3-fpm
+WORKDIR /var/www/html
+COPY . .
+RUN composer install --no-dev
+RUN php artisan migrate
+EXPOSE 9000
+CMD ["php-fpm"]
+```
+
+### **Producción**
+```bash
+# Optimización
+composer install --optimize-autoloader --no-dev
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# Permisos
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+```
+
+## 📊 Monitoreo y Logging
+
+### **Logs**
+- **Autenticación**: `storage/logs/laravel.log`
+- **Errores JWT**: Configurado en `config/jwt.php`
+- **Database**: Queries logueadas en modo debug
+
+### **Health Check**
+```bash
+# Verificar estado del servicio
+curl http://localhost:8000/health
+```
+
+## 🔐 Consideraciones de Seguridad
+
+- **HTTPS**: Obligatorio en producción
+- **CORS**: Configurar dominios permitidos
+- **Rate Limiting**: Implementado en rutas sensibles
+- **Input Validation**: Sanitización en todos los inputs
+- **SQL Injection**: Protegido por Eloquent ORM
+- **XSS**: Protección en respuestas JSON
+
+## 📝 Licencia
+
+MIT License - Ver archivo LICENSE para detalles
+
+---
+
+**Desarrollado para evaluación técnica de arquitectura de microservicios**
 │   Frontend     │◄──►│  Auth Service   │◄──►│  PostgreSQL    │
 │   React/TS     │ JWT │   (Laravel)    │ SQL │   Supabase     │
 │   Port: 5173    │    │   Port: 8000    │    │   Port: 5432    │

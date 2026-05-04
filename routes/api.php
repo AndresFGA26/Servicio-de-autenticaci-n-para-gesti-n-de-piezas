@@ -10,10 +10,6 @@ Route::prefix('v1')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::middleware('jwt')->group(function () {
-        Route::get('/profile', function () {
-            return response()->json([
-                'message' => 'Acceso Autenticado'
-            ]);
-        });
+        Route::get('/me', [AuthController::class, 'me']);
     });
 });
